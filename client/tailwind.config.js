@@ -1,22 +1,23 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
+      fontFamily: {
+        jersey: ['Jersey', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
       colors: {
-        primary: '#ffd6ff',
-        secondary: '#e7c6ff',
+        primary: '#3B82F6',
+        secondary: '#1E40AF',
         accent: {
           100: '#c8b6ff',
           200: '#b8c0ff',
           300: '#bbd0ff',
         }
-      },
-      fontFamily: {
-        jersey: ['Jersey M54', 'sans-serif'],
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
     },
   },
