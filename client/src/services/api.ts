@@ -1,12 +1,13 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5002/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 // Add token to all requests
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+    // Don't add 'Bearer' prefix if it's already there
+    config.headers.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
   }
   return config;
 }, (error) => {
@@ -17,27 +18,17 @@ axios.interceptors.request.use((config) => {
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    
-    // If error is not 401 or request already retried, reject
-    if (!error.response || error.response.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
-    }
-
-    const errorCode = error.response.data.code;
-    
-    // Handle different authentication errors
-    if (['TOKEN_EXPIRED', 'TOKEN_EXPIRING', 'INVALID_TOKEN'].includes(errorCode)) {
-      // Only clear auth and redirect if not already authenticated
-      const authenticated = localStorage.getItem('authenticated');
-      if (!authenticated) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('authenticated');
+    if (error.response?.status === 401) {
+      // Clear auth data on 401 errors
+      localStorage.removeItem('token');
+      localStorage.removeItem('authenticated');
+      localStorage.removeItem('mainPin');
+      
+      // Only redirect if we're not already on the auth page
+      if (window.location.pathname !== '/') {
         window.location.href = '/';
       }
-      return Promise.reject(error);
     }
-    
     return Promise.reject(error);
   }
 );
@@ -49,6 +40,10 @@ const api = {
     verifyDiaryPin: (pin: string) => axios.post(`${API_URL}/auth/verify-diary-pin`, { pin }),
     updateDiaryPin: (currentPin: string, newPin: string) => 
       axios.post(`${API_URL}/auth/update-diary-pin`, { currentPin, newPin }),
+    changeMainPin: (data: { currentPin: string; newPin: string }) =>
+      axios.post(`${API_URL}/auth/change-main-pin`, data),
+    changeDiaryPin: (data: { currentPin: string; newPin: string }) =>
+      axios.post(`${API_URL}/auth/change-diary-pin`, data),
   },
   headings: {
     getAll: () => axios.get(`${API_URL}/headings`),

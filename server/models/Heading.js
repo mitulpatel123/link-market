@@ -6,6 +6,10 @@ const headingSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true
+  },
+  description: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true

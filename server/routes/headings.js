@@ -21,7 +21,7 @@ router.post('/', auth, async (req, res) => {
     const { title, description } = req.body;
     const heading = new Heading({ title, description });
     await heading.save();
-    res.json(heading);
+    res.status(201).json(heading);
   } catch (err) {
     console.error('Error creating heading:', err);
     res.status(500).json({ message: 'Server error' });

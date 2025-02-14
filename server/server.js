@@ -10,7 +10,10 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3001', 'http://localhost:5001'],
+  credentials: true
+}));
 app.use(helmet());
 app.use(xss());
 
@@ -52,7 +55,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5001;
 
 // Add error handling for port in use
 const startServer = async () => {

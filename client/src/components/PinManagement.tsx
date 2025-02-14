@@ -1,69 +1,51 @@
 import React, { useState } from 'react';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
+import api from '../services/api';
 
 interface PinManagementProps {
   isOpen: boolean;
   onClose: () => void;
+  type: 'main' | 'diary';
 }
 
-const MAIN_PIN_KEY = 'mainPin';
-const DIARY_PIN_KEY = 'diaryPin';
-
-const PinManagement: React.FC<PinManagementProps> = ({ isOpen, onClose }) => {
-  const [mainPin, setMainPin] = useState('');
-  const [diaryPin, setDiaryPin] = useState('');
+const PinManagement: React.FC<PinManagementProps> = ({ isOpen, onClose, type }) => {
   const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
-    // Get current diary PIN from localStorage or use default
-    const currentDiaryPin = localStorage.getItem(DIARY_PIN_KEY) || '312002';
-
-    // Verify current diary pin
-    if (currentPin !== currentDiaryPin) {
-      setError('Current PIN is incorrect');
+    if (newPin !== confirmPin) {
+      setError('New PINs do not match');
       return;
     }
 
-    // Validate new PINs
-    if (mainPin.length !== 6 || diaryPin.length !== 6) {
-      setError('PINs must be 6 digits');
+    if (newPin.length !== 6) {
+      setError('PIN must be 6 digits');
       return;
     }
 
-    if (mainPin === diaryPin) {
-      setError('Main PIN and Diary PIN cannot be the same');
-      return;
-    }
-
+    setLoading(true);
     try {
-      // Store new PINs in localStorage
-      localStorage.setItem(MAIN_PIN_KEY, mainPin);
-      localStorage.setItem(DIARY_PIN_KEY, diaryPin);
+      if (type === 'main') {
+        await api.auth.changeMainPin({ currentPin, newPin });
+      } else {
+        await api.auth.changeDiaryPin({ currentPin, newPin });
+      }
       
-      // Clear all authentication
-      localStorage.removeItem('token');
-      localStorage.removeItem('diaryToken');
-      localStorage.removeItem('authenticated');
-      
-      setSuccess('PINs updated successfully! Please log in again with your new PIN.');
-      
-      // Clear form
-      setMainPin('');
-      setDiaryPin('');
       setCurrentPin('');
-
-      // Close modal and redirect to login after 2 seconds
-      setTimeout(() => {
-        onClose();
-        window.location.href = '/';
-      }, 2000);
-    } catch (err) {
-      setError('Failed to update PINs. Please try again.');
+      setNewPin('');
+      setConfirmPin('');
+      onClose();
+      alert(`${type === 'main' ? 'Main' : 'Diary'} PIN changed successfully`);
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Error changing PIN');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,92 +53,96 @@ const PinManagement: React.FC<PinManagementProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-jersey text-gray-900">Change PINs</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ×
-          </button>
+      <div className="bg-white rounded-xl p-6 max-w-md w-full">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <LockClosedIcon className="h-8 w-8 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">
+            Change {type === 'main' ? 'Main' : 'Diary'} PIN
+          </h3>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Current Diary PIN
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Current PIN
             </label>
             <input
               type="password"
+              maxLength={6}
               value={currentPin}
               onChange={(e) => {
                 setError('');
-                setSuccess('');
                 setCurrentPin(e.target.value);
               }}
-              className="input-field mt-1"
-              placeholder="Enter current diary PIN"
-              maxLength={6}
+              className="w-full px-4 py-3 text-center text-lg tracking-[0.5em] rounded-lg border border-gray-200 
+                focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+              placeholder="••••••"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              New Main PIN
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New PIN
             </label>
             <input
               type="password"
-              value={mainPin}
+              maxLength={6}
+              value={newPin}
               onChange={(e) => {
                 setError('');
-                setSuccess('');
-                setMainPin(e.target.value);
+                setNewPin(e.target.value);
               }}
-              className="input-field mt-1"
-              placeholder="Enter new main PIN"
-              maxLength={6}
+              className="w-full px-4 py-3 text-center text-lg tracking-[0.5em] rounded-lg border border-gray-200 
+                focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+              placeholder="••••••"
+              required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              New Diary PIN
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm New PIN
             </label>
             <input
               type="password"
-              value={diaryPin}
+              maxLength={6}
+              value={confirmPin}
               onChange={(e) => {
                 setError('');
-                setSuccess('');
-                setDiaryPin(e.target.value);
+                setConfirmPin(e.target.value);
               }}
-              className="input-field mt-1"
-              placeholder="Enter new diary PIN"
-              maxLength={6}
+              className="w-full px-4 py-3 text-center text-lg tracking-[0.5em] rounded-lg border border-gray-200 
+                focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+              placeholder="••••••"
+              required
             />
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm">{error}</p>
-          )}
-          {success && (
-            <p className="text-green-500 text-sm">{success}</p>
+            <div className="text-red-500 text-sm text-center">
+              {error}
+            </div>
           )}
 
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end gap-3 mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary"
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
+              disabled={loading}
+              className={`px-4 py-2 text-white rounded-lg transition-all duration-200
+                ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
+              `}
             >
-              Update PINs
+              {loading ? 'Changing...' : 'Change PIN'}
             </button>
           </div>
         </form>
